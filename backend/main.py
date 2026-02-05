@@ -15,7 +15,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from app.claim_extract import extract_claims_from_text
-from app.config import CHROMA_DIR, INTERNAL_DATA_DIR, REPORTS_DIR
+from app.config import CHROMA_DIR, INTERNAL_DATA_DIR, REPORTS_DIR, LLM_PROVIDER, OPENAI_API_KEY, openai_client
 from app.judge import judge_claim
 from app.models import (
     AnalyzeRequest,
@@ -36,6 +36,15 @@ from fastapi.responses import FileResponse, StreamingResponse
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Log LLM configuration on startup
+logger.info("=" * 80)
+logger.info("Application Startup Configuration")
+logger.info("=" * 80)
+logger.info(f"LLM_PROVIDER: {LLM_PROVIDER}")
+logger.info(f"OPENAI_API_KEY set: {bool(OPENAI_API_KEY)}")
+logger.info(f"OpenAI client initialized: {openai_client is not None}")
+logger.info("=" * 80)
 
 # Create FastAPI app
 app = FastAPI(

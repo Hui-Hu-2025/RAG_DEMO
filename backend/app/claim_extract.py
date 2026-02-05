@@ -29,6 +29,9 @@ def call_llm(messages: List[Dict], temperature: float = TEMPERATURE, max_tokens:
     Returns:
         Generated text content
     """
+    logger.info(f"call_llm: LLM_PROVIDER = '{LLM_PROVIDER}' (type: {type(LLM_PROVIDER)})")
+    logger.info(f"call_llm: openai_client is None: {openai_client is None}")
+    
     if LLM_PROVIDER == "openai":
         if not openai_client:
             raise ConnectionError("OpenAI client not initialized. Please set OPENAI_API_KEY.")
