@@ -5,11 +5,9 @@ import logging
 import json
 import re
 from typing import List, Dict, Optional
-import requests
 
 from app.config import (
-    OLLAMA_BASE_URL, LLM_MODEL, TEMPERATURE, MIN_CLAIMS, MAX_CLAIMS,
-    LLM_PROVIDER, openai_client
+    LLM_MODEL, TEMPERATURE, MIN_CLAIMS, MAX_CLAIMS, openai_client
 )
 from app.models import Claim
 from app.utils import deduplicate_claims, generate_claim_id, logger
@@ -19,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def call_llm(messages: List[Dict], temperature: float = TEMPERATURE, max_tokens: int = 2000) -> str:
     """
-    Call LLM API (OpenAI or Ollama) based on configured provider
+    Call OpenAI API
 
     Args:
         messages: List of message dicts with 'role' and 'content'
@@ -29,41 +27,16 @@ def call_llm(messages: List[Dict], temperature: float = TEMPERATURE, max_tokens:
     Returns:
         Generated text content
     """
-    logger.info(f"call_llm: LLM_PROVIDER = '{LLM_PROVIDER}' (type: {type(LLM_PROVIDER)})")
-    logger.info(f"call_llm: openai_client is None: {openai_client is None}")
-    
-    if LLM_PROVIDER == "openai":
-        if not openai_client:
-            raise ConnectionError("OpenAI client not initialized. Please set OPENAI_API_KEY.")
+    if not openai_client:
+        raise ConnectionError("OpenAI client not initialized. Please set OPENAI_API_KEY.")
 
-        response = openai_client.chat.completions.create(
-            model=LLM_MODEL,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens
-        )
-        return response.choices[0].message.content or ""
-    else:
-        # Ollama API
-        url = f"{OLLAMA_BASE_URL}/api/chat"
-        payload = {
-            "model": LLM_MODEL,
-            "messages": messages,
-            "options": {
-                "temperature": temperature,
-                "num_predict": max_tokens
-            },
-            "stream": False
-        }
-
-        response = requests.post(url, json=payload, timeout=120)
-
-        if response.status_code != 200:
-            error_msg = response.text
-            raise ConnectionError(f"Ollama API returned error {response.status_code}: {error_msg}. Please check if model '{LLM_MODEL}' is available.")
-
-        result = response.json()
-        return result.get("message", {}).get("content", "")
+    response = openai_client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens
+    )
+    return response.choices[0].message.content or ""
 
 
 def extract_claims_from_text(text: str, pages: List[tuple]) -> List[Claim]:
@@ -121,7 +94,7 @@ Claim types:
 Return ONLY valid JSON, no additional text."""
 
     try:
-        # Call LLM API (OpenAI or Ollama)
+        # Call OpenAI API
         messages = [
             {
                 "role": "system",
@@ -133,7 +106,7 @@ Return ONLY valid JSON, no additional text."""
             }
         ]
 
-        logger.info(f"Calling {LLM_PROVIDER.upper()} API with model: {LLM_MODEL}")
+        logger.info(f"Calling OpenAI API with model: {LLM_MODEL}")
         content = call_llm(messages, temperature=TEMPERATURE, max_tokens=2000)
         
         if not content:
@@ -224,11 +197,8 @@ Return ONLY valid JSON, no additional text."""
         else:
             raise ValueError(f"LLM did not return valid JSON: {e}\nResponse: {content[:500]}")
     except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to call LLM API: {e}")
-        if LLM_PROVIDER == "openai":
-            raise ConnectionError(f"Failed to connect to OpenAI API: {e}")
-        else:
-            raise ConnectionError(f"Failed to connect to Ollama at {OLLAMA_BASE_URL}. Please ensure Ollama is running and model {LLM_MODEL} is available.")
+        logger.error(f"Failed to call OpenAI API: {e}")
+        raise ConnectionError(f"Failed to connect to OpenAI API: {e}")
     except Exception as e:
         import traceback
         logger.error(f"Error extracting claims: {e}")

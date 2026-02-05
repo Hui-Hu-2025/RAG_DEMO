@@ -4,15 +4,14 @@ Internal document indexing module: Load, chunk, embed, and index internal docume
 import logging
 from pathlib import Path
 from typing import List, Dict
-import requests
 
 import chromadb
 from chromadb.config import Settings
 
 from app.config import (
-    INTERNAL_DATA_DIR, CHROMA_DIR, EMBED_MODEL, OLLAMA_BASE_URL,
-    CHUNK_SIZE, CHUNK_OVERLAP, LLM_PROVIDER, openai_client, EMBED_DIMENSION,
-    is_embedding_dimension_mismatch, get_dimension_change_info
+    INTERNAL_DATA_DIR, CHROMA_DIR, EMBED_MODEL,
+    CHUNK_SIZE, CHUNK_OVERLAP, openai_client, EMBED_DIMENSION,
+    is_embedding_dimension_mismatch, get_dimension_change_info, OPENAI_API_KEY
 )
 from app.utils import chunk_text, logger
 import shutil
@@ -22,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def get_embedding(text: str) -> List[float]:
     """
-    Get embedding for text using configured provider (OpenAI or Ollama)
+    Get embedding for text using OpenAI
 
     Args:
         text: Text to embed
@@ -31,49 +30,23 @@ def get_embedding(text: str) -> List[float]:
         Embedding vector
     """
     try:
-        logger.debug(f"get_embedding: LLM_PROVIDER = '{LLM_PROVIDER}' (type: {type(LLM_PROVIDER)}, repr: {repr(LLM_PROVIDER)})")
-        logger.debug(f"get_embedding: openai_client is None: {openai_client is None}")
-        logger.debug(f"get_embedding: LLM_PROVIDER == 'openai': {LLM_PROVIDER == 'openai'}")
-        
-        if LLM_PROVIDER == "openai":
-            if not openai_client:
-                raise ConnectionError("OpenAI client not initialized. Please set OPENAI_API_KEY.")
+        if not openai_client:
+            raise ConnectionError("OpenAI client not initialized. Please set OPENAI_API_KEY.")
 
-            response = openai_client.embeddings.create(
-                model=EMBED_MODEL,
-                input=text
-            )
-            embedding = response.data[0].embedding
+        response = openai_client.embeddings.create(
+            model=EMBED_MODEL,
+            input=text
+        )
+        embedding = response.data[0].embedding
 
-            if not embedding:
-                raise ValueError("OpenAI returned empty embedding")
+        if not embedding:
+            raise ValueError("OpenAI returned empty embedding")
 
-            return embedding
-        else:
-            # Ollama API
-            url = f"{OLLAMA_BASE_URL}/api/embeddings"
-            payload = {
-                "model": EMBED_MODEL,
-                "prompt": text
-            }
+        return embedding
 
-            response = requests.post(url, json=payload, timeout=30)
-            response.raise_for_status()
-
-            result = response.json()
-            embedding = result.get("embedding", [])
-
-            if not embedding:
-                raise ValueError("Ollama returned empty embedding")
-
-            return embedding
-
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         logger.error(f"Failed to get embedding: {e}")
-        if LLM_PROVIDER == "openai":
-            raise ConnectionError(f"Failed to get embeddings from OpenAI: {e}")
-        else:
-            raise ConnectionError(f"Failed to connect to Ollama for embeddings: {e}")
+        raise ConnectionError(f"Failed to get embeddings from OpenAI: {e}")
 
 
 def check_and_handle_dimension_mismatch():
@@ -103,7 +76,7 @@ def check_and_handle_dimension_mismatch():
 
         if stored_dimension is None:
             logger.warning("Collection exists but has no embedding_dimension metadata. Assuming mismatch.")
-            stored_dimension = 768  # Assume old Ollama default
+            stored_dimension = 3072  # Default OpenAI dimension
 
         if is_embedding_dimension_mismatch(int(stored_dimension)):
             message = get_dimension_change_info(int(stored_dimension), EMBED_DIMENSION)
@@ -248,8 +221,7 @@ def index_internal_documents():
     logger.info("=" * 80)
     logger.info("Starting internal document indexing")
     logger.info("=" * 80)
-    logger.info(f"LLM Provider: {LLM_PROVIDER} (type: {type(LLM_PROVIDER)}, repr: {repr(LLM_PROVIDER)})")
-    logger.info(f"LLM_PROVIDER == 'openai': {LLM_PROVIDER == 'openai'}")
+    logger.info(f"Using OpenAI for embeddings")
     logger.info(f"openai_client is None: {openai_client is None}")
     logger.info(f"OPENAI_API_KEY set: {bool(OPENAI_API_KEY)}")
     logger.info(f"Embedding Model: {EMBED_MODEL}")
@@ -331,7 +303,7 @@ def index_internal_documents():
             "description": "Internal company documents for rebuttal",
             "embedding_dimension": EMBED_DIMENSION,
             "embedding_model": EMBED_MODEL,
-            "llm_provider": LLM_PROVIDER
+            "llm_provider": "openai"
         }
     )
 

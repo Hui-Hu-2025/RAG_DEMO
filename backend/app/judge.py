@@ -5,9 +5,8 @@ import logging
 import json
 import re
 from typing import List
-import requests
 
-from app.config import OLLAMA_BASE_URL, LLM_MODEL, TEMPERATURE, LLM_PROVIDER
+from app.config import LLM_MODEL, TEMPERATURE
 from app.claim_extract import call_llm
 from app.models import Claim, ClaimAnalysis, Citation
 from app.utils import logger
@@ -121,7 +120,7 @@ Important Notes:
 Return ONLY valid JSON, do not include other text."""
 
     try:
-        # Call LLM API (OpenAI or Ollama)
+        # Call OpenAI API
         messages = [
             {
                 "role": "system",
@@ -133,7 +132,7 @@ Return ONLY valid JSON, do not include other text."""
             }
         ]
 
-        logger.info(f"Calling {LLM_PROVIDER.upper()} API for judgment")
+        logger.info(f"Calling OpenAI API for judgment")
         content = call_llm(messages, temperature=TEMPERATURE, max_tokens=2000)
         
         if not content:
@@ -203,11 +202,8 @@ Return ONLY valid JSON, do not include other text."""
             recommended_actions=["Check LLM response format"]
         )
     except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to call LLM API: {e}")
-        if LLM_PROVIDER == "openai":
-            raise ConnectionError(f"Failed to connect to OpenAI API: {e}")
-        else:
-            raise ConnectionError(f"Failed to connect to Ollama: {e}")
+        logger.error(f"Failed to call OpenAI API: {e}")
+        raise ConnectionError(f"Failed to connect to OpenAI API: {e}")
     except Exception as e:
         logger.error(f"Error judging claim: {e}")
         # Return default analysis

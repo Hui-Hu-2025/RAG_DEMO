@@ -44,39 +44,24 @@ else:
         elif (Path(__file__).parent.parent.parent.parent / 'company').exists():
             BASE_DIR = Path(__file__).parent.parent.parent.parent
 
-# LLM Provider configuration: "openai" or "ollama"
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
-
 # OpenAI configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+EMBED_MODEL = os.getenv("EMBED_MODEL", "text-embedding-3-large")
+EMBED_DIMENSION = 3072  # text-embedding-3-large dimension
 
-# Provider-specific defaults
-if LLM_PROVIDER == "openai":
-    LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
-    EMBED_MODEL = os.getenv("EMBED_MODEL", "text-embedding-3-large")
-    EMBED_DIMENSION = 3072  # text-embedding-3-large dimension
-else:
-    # Ollama configuration
-    LLM_MODEL = os.getenv("LLM_MODEL", "llama3.1:8b")
-    EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
-    EMBED_DIMENSION = 768  # nomic-embed-text dimension
-
-# Ollama configuration (used when LLM_PROVIDER=ollama)
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-
-# Initialize OpenAI client if provider is openai
+# Initialize OpenAI client
 openai_client = None
-if LLM_PROVIDER == "openai":
-    if not OPENAI_API_KEY:
+if not OPENAI_API_KEY:
+    import warnings
+    warnings.warn("OPENAI_API_KEY is not set. Please set OPENAI_API_KEY environment variable.")
+else:
+    try:
+        from openai import OpenAI
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    except ImportError:
         import warnings
-        warnings.warn("LLM_PROVIDER is 'openai' but OPENAI_API_KEY is not set. Please set OPENAI_API_KEY environment variable.")
-    else:
-        try:
-            from openai import OpenAI
-            openai_client = OpenAI(api_key=OPENAI_API_KEY)
-        except ImportError:
-            import warnings
-            warnings.warn("OpenAI package not installed. Please run: pip install openai")
+        warnings.warn("OpenAI package not installed. Please run: pip install openai")
 
 # Storage paths - relative to rag_demo root (one level up from backend)
 # Handle both relative and absolute paths from environment variables
@@ -117,22 +102,13 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # Embedding dimension tracking
 def get_expected_embedding_dimension() -> int:
-    """Get the expected embedding dimension for the current LLM provider"""
-    if LLM_PROVIDER == "openai":
-        if "3-large" in EMBED_MODEL:
-            return 3072
-        elif "3-small" in EMBED_MODEL:
-            return 1536
-        else:
-            return 3072  # Default for OpenAI
+    """Get the expected embedding dimension for OpenAI models"""
+    if "3-large" in EMBED_MODEL:
+        return 3072
+    elif "3-small" in EMBED_MODEL:
+        return 1536
     else:
-        # Ollama models
-        if "nomic" in EMBED_MODEL:
-            return 768
-        elif "bge" in EMBED_MODEL.lower():
-            return 1024
-        else:
-            return 768  # Default for Ollama
+        return 3072  # Default for OpenAI
 
 
 def is_embedding_dimension_mismatch(stored_dimension: int) -> bool:
@@ -142,4 +118,4 @@ def is_embedding_dimension_mismatch(stored_dimension: int) -> bool:
 
 def get_dimension_change_info(old_dim: int, new_dim: int) -> str:
     """Generate a user-friendly message about dimension change"""
-    return f"Embedding dimension changed from {old_dim} to {new_dim} (likely due to LLM_PROVIDER or EMBED_MODEL change)"
+    return f"Embedding dimension changed from {old_dim} to {new_dim} (likely due to EMBED_MODEL change)"
