@@ -14,7 +14,13 @@ export default defineConfig({
     }
   },
   preview: {
-    port: process.env.PORT || 3000,
-    host: '0.0.0.0'
+    port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
+    host: '0.0.0.0',
+    strictPort: false,
+    allowedHosts: [
+      '.railway.app',
+      'localhost',
+      '127.0.0.1'
+    ]
   }
 })
