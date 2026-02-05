@@ -14,7 +14,13 @@ except ImportError:
     pass
 
 # Base directory - backend is in rag_demo/backend, so go up one level to rag_demo root
+# In Railway, Root Directory is set to 'backend', so we need to go up one level
 BASE_DIR = Path(__file__).parent.parent.parent
+
+# If running in Railway with Root Directory = 'backend', BASE_DIR should be parent
+# Check if we're in a 'backend' subdirectory and adjust if needed
+if BASE_DIR.name == 'backend' and (BASE_DIR.parent / 'company').exists():
+    BASE_DIR = BASE_DIR.parent
 
 # LLM Provider configuration: "openai" or "ollama"
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
