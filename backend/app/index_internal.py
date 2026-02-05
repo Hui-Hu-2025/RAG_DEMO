@@ -258,8 +258,11 @@ def index_internal_documents():
 
     # INTERNAL_DATA_DIR is already resolved in config.py, but ensure it's absolute
     internal_dir = Path(INTERNAL_DATA_DIR).resolve()
+    logger.info(f"INTERNAL_DATA_DIR from config: {INTERNAL_DATA_DIR}")
     logger.info(f"Absolute path: {internal_dir}")
     logger.info(f"Path exists: {internal_dir.exists()}")
+    logger.info(f"Current working directory: {Path.cwd()}")
+    logger.info(f"Config file location: {Path(__file__)}")
     
     # Ensure we use resolved absolute path
     internal_dir = Path(INTERNAL_DATA_DIR).resolve()
