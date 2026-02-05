@@ -269,8 +269,11 @@ def index_internal_documents():
         logger.error(f"Directory does not exist: {internal_dir}")
         # Try to find the correct path
         possible_paths = [
+            Path(__file__).parent.parent / "company" / "EDU",  # backend/company/EDU (Railway with Root Directory = backend)
             Path(__file__).parent.parent.parent / "company" / "EDU",  # From rag_demo root
             Path(__file__).parent.parent.parent.parent / "company" / "EDU",  # Alternative
+            Path("company/EDU").resolve(),  # Relative to current working directory
+            Path("../company/EDU").resolve(),  # One level up
         ]
         for possible in possible_paths:
             resolved_possible = possible.resolve()
