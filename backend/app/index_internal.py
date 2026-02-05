@@ -31,6 +31,10 @@ def get_embedding(text: str) -> List[float]:
         Embedding vector
     """
     try:
+        logger.debug(f"get_embedding: LLM_PROVIDER = '{LLM_PROVIDER}' (type: {type(LLM_PROVIDER)}, repr: {repr(LLM_PROVIDER)})")
+        logger.debug(f"get_embedding: openai_client is None: {openai_client is None}")
+        logger.debug(f"get_embedding: LLM_PROVIDER == 'openai': {LLM_PROVIDER == 'openai'}")
+        
         if LLM_PROVIDER == "openai":
             if not openai_client:
                 raise ConnectionError("OpenAI client not initialized. Please set OPENAI_API_KEY.")
@@ -244,10 +248,14 @@ def index_internal_documents():
     logger.info("=" * 80)
     logger.info("Starting internal document indexing")
     logger.info("=" * 80)
-    logger.info(f"LLM Provider: {LLM_PROVIDER}")
+    logger.info(f"LLM Provider: {LLM_PROVIDER} (type: {type(LLM_PROVIDER)}, repr: {repr(LLM_PROVIDER)})")
+    logger.info(f"LLM_PROVIDER == 'openai': {LLM_PROVIDER == 'openai'}")
+    logger.info(f"openai_client is None: {openai_client is None}")
+    logger.info(f"OPENAI_API_KEY set: {bool(OPENAI_API_KEY)}")
     logger.info(f"Embedding Model: {EMBED_MODEL}")
     logger.info(f"Embedding Dimension: {EMBED_DIMENSION}")
     logger.info(f"Looking for documents in: {INTERNAL_DATA_DIR}")
+    logger.info("=" * 80)
 
     # Check for embedding dimension mismatch and handle if needed
     mismatch, old_dim, mismatch_msg = check_and_handle_dimension_mismatch()
