@@ -1,0 +1,100 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+env:
+  RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Run backend tests (if any)
+        run: |
+          cd backend
+          # Add your test commands here if you have tests
+          # python -m pytest
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+  # Note: Railway automatically deploys when code is pushed to main/master
+  # This workflow is primarily for testing. If you want to use Railway CLI
+  # for deployment, uncomment the deploy jobs below and configure RAILWAY_TOKEN secret.
+  
+  # deploy-backend:
+  #   name: Deploy Backend to Railway
+  #   needs: test
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+  #   
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Install Railway CLI
+  #       run: |
+  #         npm install -g @railway/cli
+  #
+  #     - name: Deploy to Railway
+  #       run: |
+  #         railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+  #         railway up --service backend
+  #       env:
+  #         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+  #
+  # deploy-frontend:
+  #   name: Deploy Frontend to Railway
+  #   needs: test
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+  #   
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Install Railway CLI
+  #       run: |
+  #         npm install -g @railway/cli
+  #
+  #     - name: Deploy to Railway
+  #       run: |
+  #         railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+  #         railway up --service frontend
+  #       env:
+  #         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
