@@ -22,6 +22,19 @@ BASE_DIR = Path(__file__).parent.parent.parent
 if BASE_DIR.name == 'backend' and (BASE_DIR.parent / 'company').exists():
     BASE_DIR = BASE_DIR.parent
 
+# Additional check: if company directory doesn't exist at BASE_DIR, try parent
+# This handles Railway deployment where Root Directory = 'backend'
+if not (BASE_DIR / 'company').exists():
+    # Try going up one more level (for Railway deployment)
+    if (BASE_DIR.parent / 'company').exists():
+        BASE_DIR = BASE_DIR.parent
+    # Try relative path from current working directory
+    elif Path('../company').exists():
+        BASE_DIR = Path('../').resolve()
+    # Try absolute path from config file location
+    elif (Path(__file__).parent.parent.parent.parent / 'company').exists():
+        BASE_DIR = Path(__file__).parent.parent.parent.parent
+
 # LLM Provider configuration: "openai" or "ollama"
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
 
